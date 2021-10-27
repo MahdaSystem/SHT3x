@@ -56,7 +56,7 @@ static int8_t
 Platform_Init(void)
 {
 #if defined(SHT3X_PLATFORM_ESP32_IDF)
-  i2c_config_t conf;
+  i2c_config_t conf = {0};
   conf.mode = I2C_MODE_MASTER;
   conf.sda_io_num = SHT3X_SDA_GPIO;
   conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
