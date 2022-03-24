@@ -37,6 +37,9 @@
 #include "esp_system.h"
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
+#elif defined(SHT3X_PLATFORM_AVR)
+#include <avr/io.h>
+#include <util/delay.h>
 #endif
 
 
@@ -44,6 +47,25 @@
 #if defined(SHT3X_PLATFORM_STM32_HAL)
 #define SHT3X_TIMEOUT 100
 #endif
+
+
+/* Private Macro ----------------------------------------------------------------*/
+#ifndef _BV
+#define _BV(bit) (1<<(bit))
+#endif
+
+#ifndef cbi
+#define cbi(reg,bit) reg &= ~(_BV(bit))
+#endif
+
+#ifndef sbi
+#define sbi(reg,bit) reg |= (_BV(bit))
+#endif
+
+#ifndef CHECKBIT
+#define CHECKBIT(reg,bit) ((reg & _BV(bit)) ? 1 : 0)
+#endif
+
 
 
 /**
@@ -67,6 +89,8 @@ Platform_Init(void)
     return -1;
   if (i2c_driver_install(SHT3X_I2C_NUM, conf.mode, 0, 0, 0) != ESP_OK)
     return -1;
+#elif defined(SHT3X_PLATFORM_AVR)
+  TWBR = (uint8_t)(SHT3X_CPU_CLK - 1600000) / (2 * SHT3X_I2C_RATE);
 #endif
   return 0;
 }
@@ -108,6 +132,24 @@ Platform_WriteData(uint8_t Address, uint8_t *Data, uint8_t DataLen)
     return -1;
   }
   i2c_cmd_link_delete(SHT3x_i2c_cmd_handle);
+#elif defined(SHT3X_PLATFORM_AVR)
+  uint8_t DataCounter = 0;
+
+  TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+  while (!CHECKBIT(TWCR, TWINT)); // wait until the process ends
+
+  TWDR = Address<<1;                  // set data in data register to sending
+  TWCR = _BV(TWEN) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+  while (!CHECKBIT(TWCR, TWINT));
+
+  for (DataCounter = 0; DataCounter < DataLen; DataCounter++)
+  {
+    TWDR = Data[DataCounter];                  // set data in data register to sending
+    TWCR = _BV(TWEN) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+    while (!CHECKBIT(TWCR, TWINT));
+  }
+  
+  TWCR = _BV(TWEN) | _BV(TWINT) | _BV(TWSTO); // send the STOP mode bit
 #endif
 
   return 0;
@@ -138,6 +180,27 @@ Platform_ReadData(uint8_t Address, uint8_t *Data, uint8_t DataLen)
     return -1;
   }
   i2c_cmd_link_delete(SHT3x_i2c_cmd_handle);
+#elif defined(SHT3X_PLATFORM_AVR)
+  uint8_t DataCounter = 0;
+
+  TWCR = _BV(TWEN) | _BV(TWSTA) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+  while (!CHECKBIT(TWCR, TWINT)); // wait until the process ends
+
+  TWDR = (Address<<1) | 0x01;                  // set data in data register to sending
+  TWCR = _BV(TWEN) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+  while (!CHECKBIT(TWCR, TWINT)); // wait until the process ends
+
+  for (DataCounter = 0; DataCounter < DataLen - 1; DataCounter++)
+  {
+    TWCR = _BV(TWEN) | _BV(TWEA) | _BV(TWINT); // TWI enable *** acknowledge enable
+    while (!CHECKBIT(TWCR, TWINT)); // wait until the process ends
+    Data[DataCounter] = TWDR;
+  }
+  TWCR = _BV(TWEN) | _BV(TWINT); // TWI enable
+  while (!CHECKBIT(TWCR, TWINT)); // wait until the process ends
+  Data[DataCounter] = TWDR;
+
+  TWCR = _BV(TWEN) | _BV(TWINT) | _BV(TWSTO); // send the STOP mode bit
 #endif
 
   return 0;
@@ -156,8 +219,13 @@ Platform_Delay(uint8_t Delay)
   HAL_Delay(Delay);
 #elif defined(SHT3X_PLATFORM_ESP32_IDF)
   vTaskDelay(Delay / portTICK_PERIOD_MS);
-  return 0;
+#elif defined(SHT3X_PLATFORM_AVR)
+  for (; Delay > 0; Delay--)
+  {
+    _delay_ms(1);
+  }
 #endif
+  return 0;
 }
 
 

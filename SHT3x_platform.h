@@ -48,6 +48,7 @@ extern "C" {
  */ 
 // #define SHT3X_PLATFORM_STM32_HAL
 // #define SHT3X_PLATFORM_ESP32_IDF
+// #define SHT3X_PLATFORM_AVR
 
 
 #if defined(SHT3X_PLATFORM_STM32_HAL)
@@ -57,6 +58,9 @@ extern "C" {
 #define SHT3X_I2C_RATE  100000
 #define SHT3X_SCL_GPIO  GPIO_NUM_13
 #define SHT3X_SDA_GPIO  GPIO_NUM_14
+#elif defined(SHT3X_PLATFORM_AVR)
+#define SHT3X_CPU_CLK   8000000UL
+#define SHT3X_I2C_RATE  100000
 #endif
 
 
