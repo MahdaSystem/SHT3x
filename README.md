@@ -8,6 +8,7 @@ SHT3x series sensor driver.
 It is easy to port this library to any platform. But now it is ready for use in:
 - STM32 (HAL)
 - ESP32 (esp-idf)
+- AVR (ATmega32)
 
 ## How To Use
 1. Add `SHT3x.h` and `SHT3x.c` files to your project.  It is optional to use `SHT3x_platform.h` and `SHT3x_platform.c` files (open and config `SHT3x_platform.h` file).
@@ -36,7 +37,7 @@ int main(void)
 
   while (1)
   {
-    SHT1x_ReadSample(&Handler, &Sample);
+    SHT3x_ReadSample_SingleShot(&Handler, &Sample, 2);
     printf("Temperature: %f°C\r\n"
            "Humidity: %f%%\r\n\r\n",
            Sample.TempCelsius,
@@ -72,7 +73,7 @@ int main(void)
 int8_t
 SHT3x_Platform_Init(void)
 {
-  i2c_config_t conf;
+  i2c_config_t conf = {0};
   conf.mode = I2C_MODE_MASTER;
   conf.sda_io_num = SHT3X_SDA_GPIO;
   conf.sda_pullup_en = GPIO_PULLUP_DISABLE;
@@ -167,7 +168,7 @@ int main(void)
 
   while (1)
   {
-    SHT3x_ReadSample(&Handler, &Sample);
+    SHT3x_ReadSample_SingleShot(&Handler, &Sample, 2);
     printf("Temperature: %f°C\r\n"
            "Humidity: %f%%\r\n\r\n",
            Sample.TempCelsius,
