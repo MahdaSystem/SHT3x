@@ -88,6 +88,12 @@
 #define SHT3X_COMMAND_ART_LSB   0x32
 
 /**
+ * @brief  Command for fetch the sample in periodic mode
+ */
+#define SHT3X_COMMAND_FETCH_DATA_MSB  0xE0
+#define SHT3X_COMMAND_FETCH_DATA_LSB  0x00
+
+/**
  * @brief  Break command
  */
 #define SHT3X_COMMAND_STOP_PERIODIC_MSB   0x30
@@ -123,7 +129,7 @@
  ==================================================================================
  */
 
-void
+static void
 SHT3x_ConvSample(SHT3x_Sample_t *Sample)
 {
   float TempBuff = 0;
@@ -135,6 +141,12 @@ SHT3x_ConvSample(SHT3x_Sample_t *Sample)
   Sample->TempFahrenheit = (TempBuff * 315) - 49;
 }
 
+static int8_t
+SHT3x_CheckCRC(uint16_t Data, uint8_t DataCRC)
+{
+  return 0;
+}
+
 
 
 /**
@@ -144,66 +156,194 @@ SHT3x_ConvSample(SHT3x_Sample_t *Sample)
  */
 
 /**
- * @brief  Readout of Measurement Results at Single Shot Mode
+ * @brief  Set Measurement mode Single Shot
  * @param  Handler: Pointer to handler
- * @param  Sample: Pointer to sample structure
- * @param  Repeatability: Specify repeatability level. (See Datasheet for more 
+ * @param  Repeatability: Specify repeatability level (See Datasheet for more 
  *                        information)
- *                        The repeatability level can be set to 3 levels:
- *         - 0: Low
- *         - 1: Medium
- *         - 2: High
  * 
  * @retval SHT3x_Result_t
  *         - SHT3x_OK: Operation was successful.
  *         - SHT3x_FAIL: Failed to send or receive data.
  *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
+ */
+SHT3x_Result_t
+SHT3x_SetModeSingleShot(SHT3x_Handler_t *Handler,
+                        SHT3x_Repeatability_t Repeatability)
+{
+  uint8_t cmd[2];
+  
+  cmd[0] = SHT3X_COMMAND_STOP_PERIODIC_MSB;
+  cmd[1] = SHT3X_COMMAND_STOP_PERIODIC_LSB;
+  if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
+    return SHT3x_FAIL;
+
+  Handler->Mode = SHT3x_MODE_SINGLESHOT;
+  Handler->Repeatability = Repeatability;
+
+  return SHT3x_OK;
+}
+
+
+/**
+ * @brief  Set Measurement mode Periodic
+ * @param  Handler: Pointer to handler
+ * @param  Speed: Specify acquisition frequency
+ * @param  Repeatability: Specify repeatability level (See Datasheet for more 
+ *                        information)
+ * 
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
+ *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
+ */
+SHT3x_Result_t
+SHT3x_SetModePeriodic(SHT3x_Handler_t *Handler,
+                      SHT3x_Speed_t Speed,
+                      SHT3x_Repeatability_t Repeatability)
+{
+  uint8_t cmd[2];
+  uint8_t ComandPeriodicMSB[5] = {0};
+  uint8_t ComandPeriodicLSB[3] = {0};
+
+  ComandPeriodicMSB[SHT3x_SPEED_05MPS] = SHT3X_COMMAND_PERIODIC_05MPS_MSB;
+  ComandPeriodicMSB[SHT3x_SPEED_1MPS] = SHT3X_COMMAND_PERIODIC_1MPS_MSB;
+  ComandPeriodicMSB[SHT3x_SPEED_2MPS] = SHT3X_COMMAND_PERIODIC_2MPS_MSB;
+  ComandPeriodicMSB[SHT3x_SPEED_4MPS] = SHT3X_COMMAND_PERIODIC_4MPS_MSB;
+  ComandPeriodicMSB[SHT3x_SPEED_10MPS] = SHT3X_COMMAND_PERIODIC_10MPS_MSB;
+
+  switch (Speed)
+  {
+  case SHT3x_SPEED_05MPS:
+  {
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_LOW] =
+        SHT3X_COMMAND_PERIODIC_05MPS_LOW_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_MEDIUM] =
+        SHT3X_COMMAND_PERIODIC_05MPS_MEDIUM_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_HIGH] =
+        SHT3X_COMMAND_PERIODIC_05MPS_HIGH_LSB;
+    break;
+  }
+  
+  case SHT3x_SPEED_1MPS:
+  {
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_LOW] =
+        SHT3X_COMMAND_PERIODIC_1MPS_LOW_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_MEDIUM] =
+        SHT3X_COMMAND_PERIODIC_1MPS_MEDIUM_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_HIGH] =
+        SHT3X_COMMAND_PERIODIC_1MPS_HIGH_LSB;
+    break;
+  }
+
+  case SHT3x_SPEED_2MPS:
+  {
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_LOW] =
+        SHT3X_COMMAND_PERIODIC_2MPS_LOW_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_MEDIUM] =
+        SHT3X_COMMAND_PERIODIC_2MPS_MEDIUM_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_HIGH] =
+        SHT3X_COMMAND_PERIODIC_2MPS_HIGH_LSB;
+    break;
+  }
+
+  case SHT3x_SPEED_4MPS:
+  {
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_LOW] =
+        SHT3X_COMMAND_PERIODIC_4MPS_LOW_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_MEDIUM] =
+        SHT3X_COMMAND_PERIODIC_4MPS_MEDIUM_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_HIGH] =
+        SHT3X_COMMAND_PERIODIC_4MPS_HIGH_LSB;
+    break;
+  }
+
+  case SHT3x_SPEED_10MPS:
+  {
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_LOW] =
+        SHT3X_COMMAND_PERIODIC_10MPS_LOW_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_MEDIUM] =
+        SHT3X_COMMAND_PERIODIC_10MPS_MEDIUM_LSB;
+    ComandPeriodicLSB[SHT3x_REPEATABILITY_HIGH] =
+        SHT3X_COMMAND_PERIODIC_10MPS_HIGH_LSB;
+    break;
+  }
+
+  default:
+    return SHT3x_INVALID_PARAM;
+    break;
+  }
+
+  cmd[0] = ComandPeriodicMSB[Speed];
+  cmd[1] = ComandPeriodicLSB[Repeatability];
+
+  if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
+    return SHT3x_FAIL;
+
+  Handler->Mode = SHT3x_MODE_PERIODIC;
+  Handler->Speed = Speed;
+  Handler->Repeatability = Repeatability;
+  
+  return SHT3x_OK;
+}
+
+
+/**
+ * @brief  Set Measurement mode ART (Accelerated Response Time)
+ * @param  Handler: Pointer to handler
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
+ */
+SHT3x_Result_t
+SHT3x_SetModeART(SHT3x_Handler_t *Handler)
+{
+  uint8_t cmd[2];
+
+  cmd[0] = SHT3X_COMMAND_ART_MSB;
+  cmd[1] = SHT3X_COMMAND_ART_LSB;
+
+  if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
+    return SHT3x_FAIL;
+
+  Handler->Mode = SHT3x_MODE_ART;
+
+  return SHT3x_OK;
+}
+
+
+/**
+ * @brief  Read a sample
+ * @note   In Single Shot mode, the function starts measuring and waits up to
+ *         20ms to finish.
+ *
+ * @param  Handler: Pointer to handler
+ * @param  Sample: Pointer to sample buffer
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
  *         - SHT3x_CRC_ERROR: CRC check error.
  */
 SHT3x_Result_t
-SHT3x_ReadSample_SingleShot(SHT3x_Handler_t *Handler,
-                            SHT3x_Sample_t *Sample,
-                            uint8_t Repeatability)
+SHT3x_ReadSample(SHT3x_Handler_t *Handler, SHT3x_Sample_t *Sample)
 {
   uint8_t cmd[2];
-  uint8_t Buffer[6];
+  uint8_t Buffer[6] = {0};
+  int8_t PlatformResult = 0;
 
-  if (SHT3X_CLOCK_STRETCHING)
-  {
-    cmd[0] = SHT3X_COMMAND_SINGLESHOT_ENABLE_MSB;
-    switch (Repeatability)
-    {
-    case 0:
-      cmd[1] = SHT3X_COMMAND_SINGLESHOT_ENABLE_LOW_LSB;
-      break;
-    
-    case 1:
-      cmd[1] = SHT3X_COMMAND_SINGLESHOT_ENABLE_MEDIUM_LSB;
-      break;
-
-    case 2:
-      cmd[1] = SHT3X_COMMAND_SINGLESHOT_ENABLE_HIGH_LSB;
-      break;
-
-    default:
-      return SHT3x_INVALID_PARAM;
-      break;
-    }
-  }
-  else
+  if (Handler->Mode == SHT3x_MODE_SINGLESHOT)
   {
     cmd[0] = SHT3X_COMMAND_SINGLESHOT_DISABLE_MSB;
-    switch (Repeatability)
+    switch (Handler->Repeatability)
     {
-    case 0:
+    case SHT3x_REPEATABILITY_LOW:
       cmd[1] = SHT3X_COMMAND_SINGLESHOT_DISABLE_LOW_LSB;
       break;
-    
-    case 1:
+
+    case SHT3x_REPEATABILITY_MEDIUM:
       cmd[1] = SHT3X_COMMAND_SINGLESHOT_DISABLE_MEDIUM_LSB;
       break;
 
-    case 2:
+    case SHT3x_REPEATABILITY_HIGH:
       cmd[1] = SHT3X_COMMAND_SINGLESHOT_DISABLE_HIGH_LSB;
       break;
 
@@ -211,17 +351,36 @@ SHT3x_ReadSample_SingleShot(SHT3x_Handler_t *Handler,
       return SHT3x_INVALID_PARAM;
       break;
     }
+    if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
+      return SHT3x_FAIL;
+
+    for (uint8_t Counter = 0; Counter < 20; Counter++)
+    {
+      if (Handler->PlatformReceive(Handler->AddressI2C, Buffer, 6) == 0)
+        break;
+
+      Handler->PlatformDelay(1);
+    }
+
+    if (Buffer[2] == 0 && Buffer[5] == 0)
+      return SHT3x_FAIL;
   }
-
-  if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
-    return SHT3x_FAIL;
-
-  for (uint8_t Counter = 0; Counter < 20; Counter++)
+  else
   {
-    if (Handler->PlatformReceive(Handler->AddressI2C, Buffer, 6) == 0)
-      break;
-    
-    Handler->PlatformDelay(1);
+    uint16_t Status = 0;
+
+    cmd[0] = SHT3X_COMMAND_FETCH_DATA_MSB;
+    cmd[1] = SHT3X_COMMAND_FETCH_DATA_LSB;
+
+    PlatformResult = Handler->PlatformSend(Handler->AddressI2C, cmd, 2);
+    if (PlatformResult != 0)
+      return SHT3x_FAIL;
+
+    PlatformResult = Handler->PlatformReceive(Handler->AddressI2C, Buffer, 6);
+    if (PlatformResult == -3)
+      return SHT3x_NO_DATA;
+    else if (PlatformResult != 0)
+      return SHT3x_FAIL;
   }
 
   Sample->TempRaw = (Buffer[0] << 8) | Buffer[1];
@@ -249,16 +408,46 @@ SHT3x_ReadSample_SingleShot(SHT3x_Handler_t *Handler,
 /**
  * @brief  Initializer function
  * @param  Handler: Pointer to handler
+ * @param  Address: The address depends on ADDR pin state. You should use one of
+ *                  this options:
+ *         - 0: This address used when ADDR is connected VSS
+ *         - 1: This address used when ADDR is connected VDD
+ * 
  * @retval SHT3x_Result_t
  *         - SHT3x_OK: Operation was successful.
  *         - SHT3x_FAIL: Failed to send or receive data.
+ *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
  */
 SHT3x_Result_t
-SHT3x_Init(SHT3x_Handler_t *Handler)
+SHT3x_Init(SHT3x_Handler_t *Handler, uint8_t Address)
 {
-  SHT3x_SetAddressI2C(Handler , 0);
-  if (Handler->PlatformInit() != 0)
-    return SHT3x_FAIL;
+  uint8_t cmd[2];
+
+  SHT3x_SetAddressI2C(Handler, Address);
+
+  if (!Handler->PlatformSend ||
+      !Handler->PlatformReceive ||
+      !Handler->PlatformDelay)
+    return SHT3x_INVALID_PARAM;
+
+  if (!Handler->PlatformCRC)
+    Handler->PlatformCRC = SHT3x_CheckCRC;
+
+  if (Handler->PlatformInit)
+  {
+    if (Handler->PlatformInit() != 0)
+      return SHT3x_FAIL;
+  }
+
+  SHT3x_SetModeSingleShot(Handler, SHT3x_REPEATABILITY_LOW);
+  
+  cmd[0] = SHT3X_COMMAND_SOFT_RESET_MSB;
+  cmd[1] = SHT3X_COMMAND_SOFT_RESET_LSB;
+  if (Handler->PlatformSend(Handler->AddressI2C, cmd, 2) != 0)
+      return SHT3x_FAIL;
+
+  Handler->PlatformDelay(2);
+  
   return SHT3x_OK;
 }
 
@@ -272,8 +461,11 @@ SHT3x_Init(SHT3x_Handler_t *Handler)
 SHT3x_Result_t
 SHT3x_DeInit(SHT3x_Handler_t *Handler)
 {
-  if (Handler->PlatformDeInit() != 0)
-    return SHT3x_FAIL;
+  if (Handler->PlatformDeInit)
+  {
+    if (Handler->PlatformDeInit() != 0)
+      return SHT3x_FAIL;
+  }
   return SHT3x_OK;
 }
 
@@ -292,9 +484,13 @@ SHT3x_DeInit(SHT3x_Handler_t *Handler)
 SHT3x_Result_t
 SHT3x_SetAddressI2C(SHT3x_Handler_t *Handler, uint8_t Address)
 {
-  if (Address == 0)
+  if (Address == 0 ||
+      Address == SHT3X_I2C_ADDRESS_A ||
+      Address == (SHT3X_I2C_ADDRESS_A << 1))
     Handler->AddressI2C = SHT3X_I2C_ADDRESS_A;
-  else
+  else if (Address == 1 ||
+           Address == SHT3X_I2C_ADDRESS_B ||
+           Address == (SHT3X_I2C_ADDRESS_B << 1))
     Handler->AddressI2C = SHT3X_I2C_ADDRESS_B;
 
   return SHT3x_OK;

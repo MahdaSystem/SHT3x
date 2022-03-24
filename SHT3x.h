@@ -47,6 +47,93 @@ extern "C" {
 
 /* Exported Data Types ----------------------------------------------------------*/
 /**
+ * @brief  Library functions result data type
+ */
+typedef enum SHT3x_Result_e
+{
+  SHT3x_OK            = 0,
+  SHT3x_FAIL          = 1,
+  SHT3x_INVALID_PARAM = 2,
+  SHT3x_CRC_ERROR     = 3,
+  SHT3x_NO_DATA       = 4,
+} SHT3x_Result_t;
+
+/**
+ * @brief  Measuring mode
+ */
+typedef enum SHT3x_Mode_e
+{
+  SHT3x_MODE_SINGLESHOT = 0,
+  SHT3x_MODE_PERIODIC   = 1,
+  SHT3x_MODE_ART        = 2,
+} SHT3x_Mode_t;
+
+/**
+ * @brief  Measuring Speed in Periodic mode
+ */
+typedef enum SHT3x_Speed_e
+{
+  SHT3x_SPEED_05MPS = 0,
+  SHT3x_SPEED_1MPS  = 1,
+  SHT3x_SPEED_2MPS  = 2,
+  SHT3x_SPEED_4MPS  = 3,
+  SHT3x_SPEED_10MPS = 4,
+} SHT3x_Speed_t;
+
+
+/**
+ * @brief  Measuring Repeatability
+ */
+typedef enum SHT3x_Repeatability_e
+{
+  SHT3x_REPEATABILITY_LOW     = 0,
+  SHT3x_REPEATABILITY_MEDIUM  = 1,
+  SHT3x_REPEATABILITY_HIGH    = 2,
+} SHT3x_Repeatability_t;
+
+
+/**
+ * @brief  Function type for Initialize/Deinitialize the platform dependent layer.
+ * @retval 
+ *         -  0: The operation was successful.
+ *         - -1: The operation failed. 
+ */
+typedef int8_t (*SHT3x_PlatformInitDeinit_t)(void);
+
+/**
+ * @brief  Function type for Send/Receive data to/from the slave.
+ * @param  Address: Address of slave (0 <= Address <= 127)
+ * @param  Data: Pointer to data
+ * @param  Len: data len in Bytes
+ * @retval 
+ *         -  0: The operation was successful.
+ *         - -1: Failed to send/receive.
+ *         - -2: Bus is busy.
+ *         - -3: Slave doesn't ACK the transfer.
+ */
+typedef int8_t (*SHT3x_PlatformSendReceive_t)(uint8_t Address,
+                                              uint8_t *Data, uint8_t Len);
+
+/**
+ * @brief  Function type for check CRC of the data received.
+ * @param  Data: 16 bit data received
+ * @param  DataCRC: CRC of data received
+ * @retval 
+ *         -  0: The data is valid.
+ *         - -1: The data is not valid.
+ */
+typedef int8_t (*SHT3x_PlatformCRC_t)(uint16_t Data, uint8_t DataCRC);
+
+/**
+ * @brief  Function type for delay in ms.
+ * @param  Delay: Delay duration in ms
+ * @retval 
+ *         -  0: The operation was successful.
+ *         - -1: The operation failed.
+ */
+typedef int8_t (*SHT3x_PlatformDelay_t)(uint8_t Delay);
+
+/**
  * @brief  Handler data type
  * @note   User must initialize this this functions before using library:
  *         - PlatformInit
@@ -60,32 +147,24 @@ extern "C" {
 typedef struct SHT3x_Handler_s
 {
   uint8_t AddressI2C;
+  SHT3x_Mode_t Mode;
+  SHT3x_Repeatability_t Repeatability;
+  SHT3x_Speed_t Speed;
 
-  // Initializes platform dependent part
-  int8_t (*PlatformInit)(void);
-  // De-initializes platform dependent part
-  int8_t (*PlatformDeInit)(void);
-  // Send Data to the slave with the address of Address. (0 <= Address <= 127)
-  int8_t (*PlatformSend)(uint8_t Address, uint8_t *Data, uint8_t Len);
-  // Receive Data from the slave with the address of Address. (0 <= Address <= 127)
-  int8_t (*PlatformReceive)(uint8_t Address, uint8_t *Data, uint8_t Len);
+  // Initializes platform dependent layer
+  SHT3x_PlatformInitDeinit_t PlatformInit;
+  // De-initializes platform dependent layer
+  SHT3x_PlatformInitDeinit_t PlatformDeInit;
+  // Send Data to the SHT3x.
+  SHT3x_PlatformSendReceive_t PlatformSend;
+  // Receive Data from the SHT3x.
+  SHT3x_PlatformSendReceive_t PlatformReceive;
+  // Delay in ms
+  SHT3x_PlatformDelay_t PlatformDelay;
   // Check CRC of Data (If you do not want to check CRC, this function must
   // allways return 0)
-  int8_t (*PlatformCRC)(uint16_t Data, uint8_t DataCRC);
-  // Delay in ms
-  int8_t (*PlatformDelay)(uint8_t Delay);
+  SHT3x_PlatformCRC_t PlatformCRC;
 } SHT3x_Handler_t;
-
-/**
- * @brief  Library functions result data type
- */
-typedef enum SHT3x_Result_e
-{
-  SHT3x_OK = 0,
-  SHT3x_FAIL = 1,
-  SHT3x_INVALID_PARAM = 2,
-  SHT3x_CRC_ERROR = 3
-} SHT3x_Result_t;
 
 /**
  * @brief  Sample data type
@@ -100,23 +179,6 @@ typedef struct SHT3x_Sample_s
 } SHT3x_Sample_t;
 
 
-/* Functionality Options --------------------------------------------------------*/
-/**
- * @brief  When a command without clock stretching has been issued, the sensor
- *         responds to a read header with a not acknowledge (NACK), if no data
- *         is present.
- *         When a command with clock stretching has been issued, the sensor
- *         responds to a read header with an ACK and subsequently pulls down the
- *         SCL line. The SCL line is pulled down until the measurement is
- *         complete. As soon as the measurement is complete, the sensor releases
- *         the SCL line and sends the measurement results.
- *         You can set this constant in 2 levels:
- *         - 0: Disable clock stretching
- *         - 1: Enable clock stretching
- */
-#define SHT3X_CLOCK_STRETCHING    0
-
-
 
 /**
  ==================================================================================
@@ -125,26 +187,65 @@ typedef struct SHT3x_Sample_s
  */
 
 /**
- * @brief  Readout of Measurement Results at Single Shot Mode
+ * @brief  Set Measurement mode Single Shot
  * @param  Handler: Pointer to handler
- * @param  Sample: Pointer to sample structure
  * @param  Repeatability: Specify repeatability level (See Datasheet for more 
- *                        information). The repeatability level can be set to 3
- *                        levels:
- *         - 0: Low
- *         - 1: Medium
- *         - 2: High
+ *                        information)
  * 
  * @retval SHT3x_Result_t
  *         - SHT3x_OK: Operation was successful.
  *         - SHT3x_FAIL: Failed to send or receive data.
  *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
- *         - SHT3x_CRC_ERROR: CRC check error.
  */
 SHT3x_Result_t
-SHT3x_ReadSample_SingleShot(SHT3x_Handler_t *Handler,
-                            SHT3x_Sample_t *Sample,
-                            uint8_t Repeatability);
+SHT3x_SetModeSingleShot(SHT3x_Handler_t *Handler,
+                        SHT3x_Repeatability_t Repeatability);
+
+
+/**
+ * @brief  Set Measurement mode Periodic
+ * @param  Handler: Pointer to handler
+ * @param  Speed: Specify acquisition frequency
+ * @param  Repeatability: Specify repeatability level (See Datasheet for more 
+ *                        information)
+ * 
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
+ *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
+ */
+SHT3x_Result_t
+SHT3x_SetModePeriodic(SHT3x_Handler_t *Handler,
+                      SHT3x_Speed_t Speed,
+                      SHT3x_Repeatability_t Repeatability);
+
+
+/**
+ * @brief  Set Measurement mode ART (Accelerated Response Time)
+ * @param  Handler: Pointer to handler
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
+ */
+SHT3x_Result_t
+SHT3x_SetModeART(SHT3x_Handler_t *Handler);
+
+
+/**
+ * @brief  Read a sample
+ * @note   In Single Shot mode, the function starts measuring and waits up to
+ *         20ms to finish.
+ *
+ * @param  Handler: Pointer to handler
+ * @param  Sample: Pointer to sample buffer
+ * @retval SHT3x_Result_t
+ *         - SHT3x_OK: Operation was successful.
+ *         - SHT3x_FAIL: Failed to send or receive data.
+ *         - SHT3x_CRC_ERROR: CRC check error.
+ *         - SHT3x_NO_DATA: No measurement data is present.
+ */
+SHT3x_Result_t
+SHT3x_ReadSample(SHT3x_Handler_t *Handler, SHT3x_Sample_t *Sample);
 
 
 
@@ -157,12 +258,18 @@ SHT3x_ReadSample_SingleShot(SHT3x_Handler_t *Handler,
 /**
  * @brief  Initializer function
  * @param  Handler: Pointer to handler
+ * @param  Address: The address depends on ADDR pin state. You should use one of
+ *                  this options:
+ *         - 0: This address used when ADDR is connected VSS
+ *         - 1: This address used when ADDR is connected VDD
+ * 
  * @retval SHT3x_Result_t
  *         - SHT3x_OK: Operation was successful.
  *         - SHT3x_FAIL: Failed to send or receive data.
+ *         - SHT3x_INVALID_PARAM: One of parameters is invalid.
  */
 SHT3x_Result_t
-SHT3x_Init(SHT3x_Handler_t *Handler);
+SHT3x_Init(SHT3x_Handler_t *Handler, uint8_t Address);
 
 
 /**
