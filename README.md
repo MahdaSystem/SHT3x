@@ -14,8 +14,7 @@ It is easy to port this library to any platform. But now it is ready for use in:
 1. Add `SHT3x.h` and `SHT3x.c` files to your project.  It is optional to use `SHT3x_platform.h` and `SHT3x_platform.c` files (open and config `SHT3x_platform.h` file).
 2. Initialize platform-dependent part of handler.
 4. Call `SHT3x_Init()`.
-5. Call `SHT3x_SetAddressI2C()`.
-6. Call other functions and enjoy.
+5. Call other functions and enjoy.
 
 ## Example
 <details>
