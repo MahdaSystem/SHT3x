@@ -32,12 +32,12 @@ int main(void)
   SHT3x_Sample_t  Sample;
 
   SHT3x_Platform_Init(&Handler);
-  SHT3x_Init(&Handler);
-  SHT3x_SetAddressI2C(&Handler, 0);
+  SHT3x_Init(&Handler, 0);
+  SHT3x_SetModeSingleShot(&Handler, SHT3x_REPEATABILITY_HIGH);
 
   while (1)
   {
-    SHT3x_ReadSample_SingleShot(&Handler, &Sample, 2);
+    SHT3x_ReadSample(&Handler, &Sample);
     printf("Temperature: %f°C\r\n"
            "Humidity: %f%%\r\n\r\n",
            Sample.TempCelsius,
@@ -163,12 +163,12 @@ int main(void)
   Handler.PlatformCRC     = SHT3x_Platform_CRC;
   Handler.PlatformDelay   = SHT3x_Platform_Delay;
 
-  SHT3x_Init(&Handler);
-  SHT3x_SetAddressI2C(&Handler, 0);
+  SHT3x_Init(&Handler, 0);
+  SHT3x_SetModeSingleShot(&Handler, SHT3x_REPEATABILITY_HIGH);
 
   while (1)
   {
-    SHT3x_ReadSample_SingleShot(&Handler, &Sample, 2);
+    SHT3x_ReadSample(&Handler, &Sample);
     printf("Temperature: %f°C\r\n"
            "Humidity: %f%%\r\n\r\n",
            Sample.TempCelsius,
