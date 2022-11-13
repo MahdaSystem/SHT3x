@@ -367,8 +367,6 @@ SHT3x_ReadSample(SHT3x_Handler_t *Handler, SHT3x_Sample_t *Sample)
   }
   else
   {
-    uint16_t Status = 0;
-
     cmd[0] = SHT3X_COMMAND_FETCH_DATA_MSB;
     cmd[1] = SHT3X_COMMAND_FETCH_DATA_LSB;
 
