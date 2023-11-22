@@ -144,6 +144,8 @@ SHT3x_ConvSample(SHT3x_Sample_t *Sample)
 static int8_t
 SHT3x_CheckCRC(uint16_t Data, uint8_t DataCRC)
 {
+  (void)Data;
+  (void)DataCRC;
   return 0;
 }
 

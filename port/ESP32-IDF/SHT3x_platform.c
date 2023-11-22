@@ -125,6 +125,8 @@ Platform_ReadData(uint8_t Address, uint8_t *Data, uint8_t DataLen)
 static int8_t
 Platform_CRC(uint16_t Data, uint8_t DataCRC)
 {
+  (void)Data;
+  (void)DataCRC;
   return 0;
 }
 
