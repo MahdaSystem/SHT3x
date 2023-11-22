@@ -5,7 +5,7 @@
  * @brief  SHT3x series driver platform dependent part
  **********************************************************************************
  *
- * Copyright (c) 2021 Mahda Embedded System (MIT License)
+ * Copyright (c) 2023 Mahda Embedded System (MIT License)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,26 +42,8 @@ extern "C" {
 
 
 /* Functionality Options --------------------------------------------------------*/
-/**
- * @brief  Specify the target platform
- * @note   Uncomment the line below according to the target platform
- */ 
-// #define SHT3X_PLATFORM_STM32_HAL
-// #define SHT3X_PLATFORM_ESP32_IDF
-// #define SHT3X_PLATFORM_AVR
-
-
-#if defined(SHT3X_PLATFORM_STM32_HAL)
-#define SHT3X_HI2C      hi2c2
-#elif defined(SHT3X_PLATFORM_ESP32_IDF)
-#define SHT3X_I2C_NUM   I2C_NUM_1
 #define SHT3X_I2C_RATE  100000
-#define SHT3X_SCL_GPIO  GPIO_NUM_13
-#define SHT3X_SDA_GPIO  GPIO_NUM_14
-#elif defined(SHT3X_PLATFORM_AVR)
-#define SHT3X_CPU_CLK   8000000UL
-#define SHT3X_I2C_RATE  100000
-#endif
+
 
 
 /**
@@ -70,6 +52,11 @@ extern "C" {
  ==================================================================================
  */
 
+/**
+ * @brief  Initialize platform device to communicate SHT3x.
+ * @param  Handler: Pointer to handler
+ * @retval None
+ */
 void
 SHT3x_Platform_Init(SHT3x_Handler_t *Handler);
 
