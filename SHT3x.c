@@ -1,6 +1,6 @@
 /**
  **********************************************************************************
- * @file   sht3x.c
+ * @file   SHT3x.c
  * @author Hossein.M (https://github.com/Hossein-M98)
  * @brief  SHT3x series sensor handling
  *         Functionalities of the this file:

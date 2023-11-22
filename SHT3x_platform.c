@@ -1,6 +1,6 @@
 /**
  **********************************************************************************
- * @file   sht3x_platform.c
+ * @file   SHT3x_platform.c
  * @author Hossein.M (https://github.com/Hossein-M98)
  * @brief  SHT3x series driver platform dependent part
  **********************************************************************************
