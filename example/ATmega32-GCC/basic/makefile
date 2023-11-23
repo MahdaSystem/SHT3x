@@ -14,12 +14,12 @@ SRC = ./main.c ../../../src/SHT3x.c ../../../port/ATmega32-GCC/SHT3x_platform.c 
 
 ifeq ($(OS),Windows_NT)
 FIXPATH = $(subst /,\,$1)
-RMD := rd /s /q
-MD := mkdir
+RMD = rd /s /q
+MD = mkdir
 else
 FIXPATH = $1
 RMD = rm -r
-MD := mkdir -p
+MD = mkdir -p
 endif
 
 
