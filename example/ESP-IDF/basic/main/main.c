@@ -2,7 +2,7 @@
  **********************************************************************************
  * @file   main.c
  * @author Hossein.M (https://github.com/Hossein-M98)
- * @brief  example code for TM1638 Driver (for ESP32-IDF)
+ * @brief  example code for SHT3x Driver (for ESP32-IDF)
  **********************************************************************************
  *
  * Copyright (c) 2023 Mahda Embedded System (MIT License)
