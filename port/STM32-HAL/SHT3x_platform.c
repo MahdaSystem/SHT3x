@@ -30,10 +30,7 @@
 
 /* Includes ---------------------------------------------------------------------*/
 #include "SHT3x_platform.h"
-#include "sdkconfig.h"
-#include "esp_system.h"
-#include "driver/i2c.h"
-#include "freertos/FreeRTOS.h"
+#include "main.h"
 
 
 /* Private Constants ------------------------------------------------------------*/
