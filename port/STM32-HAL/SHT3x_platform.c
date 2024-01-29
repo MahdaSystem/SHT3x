@@ -57,10 +57,6 @@ Platform_Init(void)
 static int8_t
 Platform_DeInit(void)
 {
-  i2c_driver_delete(SHT3X_I2C_NUM);
-  gpio_reset_pin(SHT3X_SDA_GPIO);
-  gpio_reset_pin(SHT3X_SCL_GPIO);
-
   return 0;
 }
 
